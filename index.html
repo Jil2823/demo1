@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Image Editing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f2f2f2;
+            margin: 0;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 100%;
+        }
+
+        .video-container {
+            width: 100%;
+            overflow: hidden;
+            border-radius: 5px;
+            background-color: #000;
+        }
+
+        video, canvas {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: left;
+            max-width: 100%;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="video-container">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+        </div>
+        <div class="controls">
+            <label for="brightness">Brightness:</label>
+            <input type="range" id="brightness" min="0" max="200" value="100">
+            
+            <label for="contrast">Contrast:</label>
+            <input type="range" id="contrast" min="0" max="200" value="100">
+            
+            <label for "saturation">Saturation:</label>
+            <input type="range" id="saturation" min="0" max="200" value="100">
+            
+            <button id="capture">Capture</button>
+            <input type="file" id="fileInput">
+            <button id="download" class="hidden">Download Image</button>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const brightnessInput = document.getElementById('brightness');
+            const contrastInput = document.getElementById('contrast');
+            const saturationInput = document.getElementById('saturation');
+            const captureButton = document.getElementById('capture');
+            const fileInput = document.getElementById('fileInput');
+            const downloadButton = document.getElementById('download');
+
+            const constraints = { video: true };
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(stream => {
+                    video.srcObject = stream;
+                })
+                .catch(err => console.error('Error accessing the camera:', err));
+
+            const ctx = canvas.getContext('2d');
+
+            function drawToCanvas() {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            }
+
+            function applyFilters() {
+                const brightnessValue = parseFloat(brightnessInput.value);
+                const contrastValue = parseFloat(contrastInput.value);
+                const saturationValue = parseFloat(saturationInput.value);
+
+                ctx.filter = `brightness(${brightnessValue}%) contrast(${contrastValue}%) saturate(${saturationValue}%)`;
+                drawToCanvas();
+                ctx.filter = 'none';
+            }
+
+            brightnessInput.addEventListener('input', applyFilters);
+            contrastInput.addEventListener('input', applyFilters);
+            saturationInput.addEventListener('input', applyFilters);
+
+            captureButton.addEventListener('click', function() {
+                downloadButton.classList.remove('hidden');
+                drawToCanvas();
+            });
+
+            downloadButton.addEventListener('click', function() {
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = 'edited_image.png';
+                link.click();
+            });
+
+            fileInput.addEventListener('change', function() {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+
+                reader.onload = function() {
+                    const img = new Image();
+                    img.onload = function() {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0, img.width, img.height);
+                    }
+                    img.src = reader.result;
+                }
+
+                reader.readAsDataURL(file);
+            });
+        });
+    </script>
+</body>
+</html>
